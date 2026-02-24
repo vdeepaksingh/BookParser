@@ -43,9 +43,8 @@ def main():
         from src.rag.engine import ask
         query = " ".join(sys.argv[2:])
         result = ask(query)
-        print(result["answer"])
-        for c in result["citations"]:
-            print(" ", c)
+        for i, c in enumerate(result["citations"], 1):
+            print(f"  [{i}] {c}")
 
     elif cmd == "serve":
         import uvicorn

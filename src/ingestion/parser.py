@@ -44,6 +44,8 @@ def parse_pdf(pdf_path: Path) -> dict:
 
     classified = _detect_headings(all_blocks)
     book_title, author = _extract_title_author(classified)
+    if book_title == "Unknown":
+        book_title = pdf_path.stem
     chapters = _build_structure(classified)
 
     return {

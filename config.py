@@ -24,6 +24,6 @@ NEO4J_PASSWORD = "password"
 REBEL_MODEL    = "Babelscape/rebel-large"
 
 # RAG / LLM
-OLLAMA_MODEL   = "llama3.1:8b"
+OLLAMA_MODEL   = "phi3:mini"  # change to llama3.1:8b if you have 8GB+ VRAM
 OLLAMA_BASE_URL = "http://localhost:11434"
 TOP_K_RETRIEVAL = 5
