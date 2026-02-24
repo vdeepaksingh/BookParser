@@ -1,0 +1,7 @@
+data/books/
+data/parsed/
+data/chroma/
+__pycache__/
+*.pyc
+.env
+*.egg-info/
