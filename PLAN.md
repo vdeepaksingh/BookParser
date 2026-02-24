@@ -125,15 +125,25 @@ Every answer includes: `[Book Title, Chapter X, Section Y, Page Z]`
 
 ---
 
-## Phase 5 — Search Interface
+## Phase 5 — Search Interface ✅
 
 **Goal:** Expose the system via a usable interface.
 
-### Options
-- **CLI tool** — quick queries from terminal (Phase 5a, minimal)
-- **REST API** — FastAPI, enables integration with other tools (Phase 5b)
-- **Chat UI** — Streamlit or Gradio frontend (Phase 5c)
-- **Obsidian plugin / VS Code extension** — for researchers (Phase 5d, advanced)
+### Completed
+- ✅ **CLI** — `python main.py ask "query"` with cited answers
+- ✅ **REST API** — FastAPI (`src/api/app.py`)
+  - `POST /ask` — RAG query, returns answer + citations
+  - `GET /search` — hybrid retrieval, returns top-k chunks
+  - `GET /graph/*` — 501 stubs (pending Phase 3)
+  - Model preloading via lifespan context manager
+  - Request logging with timing
+- ✅ **Chat UI** — Streamlit (`src/ui/app.py`)
+  - Ask tab: question → cited answer, Enter key submits
+  - Search tab: semantic search with top-k slider, Enter key submits
+  - `python main.py serve-ui` with hot reload
+
+### Deferred
+- **Obsidian plugin / VS Code extension** — out of current scope
 
 ---
 
@@ -173,12 +183,12 @@ UI:                Streamlit
 
 | Milestone | Deliverable |
 |---|---|
-| M1 | PDF ingestion → structured JSON for all books |
-| M2 | Embeddings + ChromaDB vector store live |
-| M3 | Basic RAG CLI: ask a question, get cited answer |
-| M4 | Structural knowledge graph in Neo4j |
-| M5 | Semantic graph: Rebel-extracted triplets merged into Neo4j |
-| M6 | FastAPI + Streamlit UI |
+| M1 | PDF ingestion → structured JSON for all books ✅ |
+| M2 | Embeddings + Qdrant vector store live ✅ |
+| M3 | Basic RAG CLI: ask a question, get cited answer ✅ |
+| M4 | Structural knowledge graph in Neo4j ⏳ deferred |
+| M5 | Semantic graph: Rebel-extracted triplets merged into Neo4j ⏳ deferred |
+| M6 | FastAPI + Streamlit UI ✅ |
 | M7 | Extended features (clustering, quizzes, etc.) |
 
 ---

@@ -125,8 +125,10 @@ def generate_answer(query: str, chunks: list[dict]) -> dict:
 
     context = "\n\n".join(context_parts)
     prompt = (
-        f"Using ONLY the numbered sources below, answer in 3-5 sentences. "
-        f"Cite only as [1], [2], etc. Do not invent sources, add extra references, or ask follow-up questions.\n\n"
+        f"Answer using ONLY the numbered sources below. "
+        f"If the answer is not in the sources, say 'This topic is not covered in the indexed books.' "
+        f"Do NOT use any outside knowledge, invent sources, or add references not listed below. "
+        f"Cite only as [1], [2], etc.\n\n"
         f"Context:\n{context}\n\n"
         f"Question: {query}\n\nAnswer:"
     )
@@ -134,7 +136,7 @@ def generate_answer(query: str, chunks: list[dict]) -> dict:
     answer_parts = []
     with requests.post(
         f"{OLLAMA_BASE_URL}/api/generate",
-        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": True, "options": {"stop": ["Follow-up", "Follow up", "Question:"]}},
+        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": True, "options": {"stop": ["Follow-up", "Follow up", "Question:", "Note:", "Disclaimer:"]}},
         timeout=(10, 300),
         stream=True,
     ) as response:
@@ -160,8 +162,14 @@ def generate_answer(query: str, chunks: list[dict]) -> dict:
     return {"answer": answer, "citations": citations}
 
 
-def ask(query: str) -> dict:
-    """End-to-end: query -> cited answer."""
+def ask(query: str, relevance_threshold: float = -2.0) -> dict:
+    """End-to-end: query -> cited answer. Returns early if no relevant chunks found."""
     chunks = retrieve(query)
+    # Score all candidates to check relevance before committing to LLM
+    model = _get_rerank_model()
+    pairs = [(query, c["text"]) for c in chunks]
+    scores = model.predict(pairs)
+    if len(scores) == 0 or float(scores.max()) < relevance_threshold:
+        return {"answer": "I could not find relevant information in the indexed books for this query.", "citations": []}
     chunks = rerank(query, chunks, min_score=-1.0)
     return generate_answer(query, chunks)
