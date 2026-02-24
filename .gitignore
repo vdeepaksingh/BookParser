@@ -1,6 +1,7 @@
 data/books/
 data/parsed/
 data/chroma/
+data/qdrant/
 __pycache__/
 *.pyc
 .env

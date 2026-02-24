@@ -22,8 +22,8 @@ def main():
 
     elif cmd == "embed":
         from src.embedding.embedder import embed_all
-        from config import PARSED_DIR, CHROMA_DIR
-        embed_all(PARSED_DIR, CHROMA_DIR)
+        from config import PARSED_DIR, QDRANT_PATH
+        embed_all(PARSED_DIR, QDRANT_PATH)
 
     elif cmd == "graph-struct":
         from src.graph.knowledge_graph import build_all_structural, get_driver, close_driver

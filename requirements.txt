@@ -4,7 +4,7 @@ pdfplumber>=0.11.0
 
 # Phase 2 — Embedding & Vector Store
 sentence-transformers>=3.0.0
-chromadb>=0.5.0
+qdrant-client>=1.9.0
 
 # Phase 3 — Knowledge Graph
 neo4j>=5.20.0
@@ -17,6 +17,7 @@ llama-index-llms-ollama>=0.1.0
 llama-index-embeddings-huggingface>=0.2.0
 rank-bm25>=0.2.2
 sentence-transformers>=3.0.0  # CrossEncoder re-ranker
+qdrant-client>=1.9.0
 
 # Phase 5 — API & UI
 fastapi>=0.111.0

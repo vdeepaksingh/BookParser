@@ -5,11 +5,11 @@ ROOT = Path(__file__).parent
 # Data paths
 BOOKS_DIR       = ROOT / "data" / "books"
 PARSED_DIR      = ROOT / "data" / "parsed"
-CHROMA_DIR      = ROOT / "data" / "chroma"
 
 # Embedding
 EMBED_MODEL     = "BAAI/bge-large-en-v1.5"
-CHROMA_COLLECTION = "bookparser"
+QDRANT_PATH    = ROOT / "data" / "qdrant"
+QDRANT_COLLECTION = "bookparser"
 
 # Chunking
 CHUNK_MAX_TOKENS  = 512
