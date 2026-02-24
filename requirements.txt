@@ -1,15 +1,14 @@
 # Phase 1 — Ingestion
 pymupdf>=1.24.0
-pdfplumber>=0.11.0
 
 # Phase 2 — Embedding & Vector Store
 sentence-transformers>=3.0.0
 qdrant-client>=1.9.0
 
 # Phase 3 — Knowledge Graph
-neo4j>=5.20.0
-transformers>=4.40.0   # Rebel model
-torch>=2.2.0
+networkx>=3.3
+stanza>=1.9.0
+# Stanza model auto-downloads on first run (en tokenize+ner)
 
 # Phase 4 — RAG
 llama-index-core>=0.10.0
@@ -23,7 +22,4 @@ qdrant-client>=1.9.0
 fastapi>=0.111.0
 uvicorn>=0.30.0
 streamlit>=1.35.0
-
-# Utilities
-python-dotenv>=1.0.0
-tqdm>=4.66.0
+pyvis>=0.3.2

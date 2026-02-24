@@ -1,8 +1,16 @@
+# Books / generated data
 data/books/
 data/parsed/
-data/chroma/
 data/qdrant/
+data/graph.gpickle
+
+# pyvis runtime assets
+lib/
+
+# Python
 __pycache__/
 *.pyc
-.env
 *.egg-info/
+
+# Env
+.env

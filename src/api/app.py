@@ -1,14 +1,11 @@
 """Phase 5 — FastAPI REST API."""
+import json
 import logging
-import sys
 import time
 from contextlib import asynccontextmanager
-from pathlib import Path
 from pydantic import BaseModel
 
 from fastapi import FastAPI, HTTPException
-
-sys.path.insert(0, str(Path(__file__).parents[2]))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -68,11 +65,44 @@ def search_endpoint(query: str, top_k: int = 5):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/section")
+def get_section(book: str, chapter: str, section: str):
+    """Return full text of a specific section from parsed JSON."""
+    from config import PARSED_DIR
+    for path in PARSED_DIR.glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("book") != book:
+            continue
+        for ch in data.get("chapters", []):
+            if ch["title"] != chapter:
+                continue
+            for sec in ch.get("sections", []):
+                if sec["title"] == section:
+                    return {"book": book, "chapter": chapter, "section": section,
+                            "text": sec["text"], "page_start": sec.get("page_start"), "page_end": sec.get("page_end")}
+    raise HTTPException(status_code=404, detail="Section not found")
+
+
+@app.get("/graph/books")
+def list_books():
+    from src.graph.knowledge_graph import _load_graph
+    g = _load_graph()
+    return {"books": [n for n, d in g.nodes(data=True) if d.get("type") == "book"]}
+
+
 @app.get("/graph/entity/{name}")
-def get_entity(name: str):
-    raise HTTPException(status_code=501, detail="Phase 3 not yet implemented")
+def get_entity_endpoint(name: str):
+    from src.graph.knowledge_graph import get_entity
+    result = get_entity(name)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
 
 
 @app.get("/graph/book/{book_title}")
-def get_book_graph(book_title: str):
-    raise HTTPException(status_code=501, detail="Phase 3 not yet implemented")
+def get_book_graph_endpoint(book_title: str):
+    from src.graph.knowledge_graph import get_book_graph
+    result = get_book_graph(book_title)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result

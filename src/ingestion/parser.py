@@ -60,17 +60,19 @@ def parse_all(books_dir: Path, output_dir: Path) -> list[Path]:
     """Parse all PDFs in books_dir, write one JSON per book to output_dir.
     Returns list of written JSON paths."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    written = []
-    for pdf_path in sorted(books_dir.glob("*.pdf")):
+
+    def _process(pdf_path: Path):
         try:
             result = parse_pdf(pdf_path)
             out_path = output_dir / (pdf_path.stem + ".json")
             out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
-            written.append(out_path)
             print(f"[OK] {pdf_path.name} -> {out_path.name}")
+            return out_path
         except Exception as e:
             print(f"[ERR] {pdf_path.name}: {e}")
-    return written
+            return None
+
+    return [p for pdf_path in sorted(books_dir.glob("*.pdf")) if (p := _process(pdf_path)) is not None]
 
 
 def _detect_headings(blocks: list[dict]) -> list[dict]:
@@ -152,10 +154,11 @@ _FRONT_MATTER_TITLES = re.compile(
 def _front_matter_page_cutoff(blocks: list[dict]) -> int:
     """Return the page number where real chapter content begins.
     Skips pages whose only headings are front-matter titles."""
-    heading_pages: dict[int, list[str]] = {}
+    from collections import defaultdict
+    heading_pages: dict[int, list[str]] = defaultdict(list)
     for b in blocks:
         if b.get("level") in ("h1", "h2"):
-            heading_pages.setdefault(b["page"], []).append(b["text"])
+            heading_pages[b["page"]].append(b["text"])
 
     for page in sorted(heading_pages):
         titles = heading_pages[page]
@@ -164,64 +167,67 @@ def _front_matter_page_cutoff(blocks: list[dict]) -> int:
     return 0  # no front matter detected, start from page 0
 
 
+def _new_section(title: str, page: int) -> dict:
+    return {"title": title, "text": "", "page_start": page, "page_end": page}
+
+
+def _new_chapter(title: str, idx: int) -> dict:
+    return {"title": title, "index": idx, "sections": []}
+
+
+def _flush_block(block: dict, state: dict) -> None:
+    """Mutate state in-place for one block."""
+    level = block.get("level", "body")
+    text, page = block["text"], block["page"]
+
+    if level == "h1":
+        if state["section"] and state["chapter"]:
+            state["chapter"]["sections"].append(state["section"])
+        if state["chapter"]:
+            state["chapters"].append(state["chapter"])
+        state["idx"] += 1
+        state["chapter"] = _new_chapter(text, state["idx"])
+        state["section"] = _new_section("__intro__", page)
+
+    elif level in ("h2", "h3"):
+        if state["section"] and state["chapter"] and state["section"]["text"].strip():
+            state["chapter"]["sections"].append(state["section"])
+        state["section"] = _new_section(text, page)
+        if state["chapter"] is None:
+            state["idx"] += 1
+            state["chapter"] = _new_chapter("Preamble", state["idx"])
+
+    else:  # body
+        if state["section"] is None:
+            state["section"] = _new_section("__intro__", page)
+        if state["chapter"] is None:
+            state["idx"] += 1
+            state["chapter"] = _new_chapter("Preamble", state["idx"])
+        state["section"]["text"] += " " + text
+        state["section"]["page_end"] = page
+
+
 def _build_structure(blocks: list[dict]) -> list[dict]:
     """Assemble blocks into chapter -> section tree."""
     blocks = _merge_heading_spans(blocks)
     cutoff = _front_matter_page_cutoff(blocks)
     blocks = [b for b in blocks if b["page"] >= cutoff]
 
-    # If h1 appears only once (cover title bled through), promote h2 -> h1, h3 -> h2
-    h1_count = sum(1 for b in blocks if b["level"] == "h1")
-    if h1_count <= 1:
+    if sum(1 for b in blocks if b["level"] == "h1") <= 1:
         level_map = {"h1": "body", "h2": "h1", "h3": "h2"}
         for b in blocks:
             b["level"] = level_map.get(b["level"], b["level"])
 
-    chapters = []
-    current_chapter = None
-    current_section = None
-    chapter_idx = 0
-
+    state = {"chapters": [], "chapter": None, "section": None, "idx": 0}
     for block in blocks:
-        level = block.get("level", "body")
-        text = block["text"]
-        page = block["page"]
+        _flush_block(block, state)
 
-        if level == "h1":
-            if current_section and current_chapter:
-                current_chapter["sections"].append(current_section)
-            if current_chapter:
-                chapters.append(current_chapter)
-            chapter_idx += 1
-            current_chapter = {"title": text, "index": chapter_idx, "sections": []}
-            current_section = {"title": "__intro__", "text": "", "page_start": page, "page_end": page}
+    if state["section"] and state["chapter"] and state["section"]["text"].strip():
+        state["chapter"]["sections"].append(state["section"])
+    if state["chapter"]:
+        state["chapters"].append(state["chapter"])
 
-        elif level in ("h2", "h3"):
-            if current_section and current_chapter:
-                if current_section["text"].strip():
-                    current_chapter["sections"].append(current_section)
-            current_section = {"title": text, "text": "", "page_start": page, "page_end": page}
-            if current_chapter is None:
-                chapter_idx += 1
-                current_chapter = {"title": "Preamble", "index": chapter_idx, "sections": []}
-
-        else:  # body
-            if current_section is None:
-                current_section = {"title": "__intro__", "text": "", "page_start": page, "page_end": page}
-            if current_chapter is None:
-                chapter_idx += 1
-                current_chapter = {"title": "Preamble", "index": chapter_idx, "sections": []}
-            current_section["text"] += " " + text
-            current_section["page_end"] = page
-
-    # flush remaining
-    if current_section and current_chapter:
-        if current_section["text"].strip():
-            current_chapter["sections"].append(current_section)
-    if current_chapter:
-        chapters.append(current_chapter)
-
-    return chapters
+    return state["chapters"]
 
 
 def _ocr_fallback(pdf_path: Path) -> dict:

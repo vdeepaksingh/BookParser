@@ -3,11 +3,12 @@ BookParser CLI — run individual pipeline phases.
 
 Usage:
   python main.py ingest          # M1: parse all PDFs -> JSON
-  python main.py embed           # M2: chunk + embed -> ChromaDB
-  python main.py graph-struct    # M4: structural graph -> Neo4j
-  python main.py graph-semantic  # M5: Rebel triplets -> Neo4j
-  python main.py ask "query"     # M3: RAG query
-  python main.py serve           # M6: start FastAPI server
+  python main.py embed           # M2: chunk + embed -> Qdrant
+  python main.py graph-struct    # M4: structural graph (NetworkX)
+  python main.py graph-entity    # M5: spaCy NER entity graph
+  python main.py ask "query"     # RAG query
+  python main.py serve           # start FastAPI server
+  python main.py serve-ui        # start Streamlit UI
 """
 import sys
 
@@ -26,18 +27,14 @@ def main():
         embed_all(PARSED_DIR, QDRANT_PATH)
 
     elif cmd == "graph-struct":
-        from src.graph.knowledge_graph import build_all_structural, get_driver, close_driver
-        from config import PARSED_DIR, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
-        driver = get_driver(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
-        build_all_structural(PARSED_DIR, driver)
-        close_driver(driver)
+        from src.graph.knowledge_graph import build_all_structural
+        from config import PARSED_DIR
+        build_all_structural(PARSED_DIR)
 
-    elif cmd == "graph-semantic":
-        from src.graph.knowledge_graph import build_semantic_graph, get_driver, close_driver
-        from config import PARSED_DIR, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
-        driver = get_driver(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
-        build_semantic_graph(PARSED_DIR, driver)
-        close_driver(driver)
+    elif cmd == "graph-entity":
+        from src.graph.knowledge_graph import build_entity_graph
+        from config import PARSED_DIR
+        build_entity_graph(PARSED_DIR)
 
     elif cmd == "ask":
         from src.rag.engine import ask
@@ -48,7 +45,8 @@ def main():
 
     elif cmd == "serve":
         import uvicorn
-        uvicorn.run("src.api.app:app", host="0.0.0.0", port=8000, reload=True)
+        from config import API_PORT
+        uvicorn.run("src.api.app:app", host="0.0.0.0", port=API_PORT, reload=True)
 
     elif cmd == "serve-ui":
         import subprocess

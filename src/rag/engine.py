@@ -4,18 +4,15 @@ Phase 4 — RAG reference engine.
 Pipeline:
   query -> embed (BGE) -> Qdrant top-k -> CrossEncoder rerank -> Ollama LLM -> cited answer
 """
-import sys
-from pathlib import Path
-
 import requests
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from qdrant_client import QdrantClient
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
 from config import (
     EMBED_MODEL, QDRANT_PATH, QDRANT_COLLECTION,
-    OLLAMA_MODEL, OLLAMA_BASE_URL, TOP_K_RETRIEVAL
+    OLLAMA_MODEL, OLLAMA_BASE_URL, TOP_K_RETRIEVAL,
+    RERANK_MODEL, RELEVANCE_THRESHOLD, RERANK_MIN_SCORE, CHUNK_CONTEXT_CAP
 )
 
 _embed_model = None
@@ -32,7 +29,7 @@ def _get_embed_model():
 def _get_rerank_model():
     global _rerank_model
     if _rerank_model is None:
-        _rerank_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        _rerank_model = CrossEncoder(RERANK_MODEL)
     return _rerank_model
 
 
@@ -121,7 +118,7 @@ def generate_answer(query: str, chunks: list[dict]) -> dict:
             section = '-'
         citation = f"[{m.get('book', '?')}, {m.get('chapter_title', '?')}, {section}, p.{m.get('page_start', '?')}]"
         citations.append(citation)
-        context_parts.append(f"[{i}] {chunk['text'][:500]}\nSource: {citation}")
+        context_parts.append(f"[{i}] {chunk['text'][:CHUNK_CONTEXT_CAP]}\nSource: {citation}")
 
     context = "\n\n".join(context_parts)
     prompt = (
@@ -162,14 +159,13 @@ def generate_answer(query: str, chunks: list[dict]) -> dict:
     return {"answer": answer, "citations": citations}
 
 
-def ask(query: str, relevance_threshold: float = -2.0) -> dict:
+def ask(query: str, relevance_threshold: float = RELEVANCE_THRESHOLD) -> dict:
     """End-to-end: query -> cited answer. Returns early if no relevant chunks found."""
     chunks = retrieve(query)
-    # Score all candidates to check relevance before committing to LLM
     model = _get_rerank_model()
     pairs = [(query, c["text"]) for c in chunks]
     scores = model.predict(pairs)
     if len(scores) == 0 or float(scores.max()) < relevance_threshold:
         return {"answer": "I could not find relevant information in the indexed books for this query.", "citations": []}
-    chunks = rerank(query, chunks, min_score=-1.0)
+    chunks = rerank(query, chunks, min_score=RERANK_MIN_SCORE)
     return generate_answer(query, chunks)
