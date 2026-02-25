@@ -2,10 +2,12 @@
 BookParser CLI — run individual pipeline phases.
 
 Usage:
-  python main.py ingest          # M1: parse all PDFs -> JSON
-  python main.py embed           # M2: chunk + embed -> Qdrant
-  python main.py graph-struct    # M4: structural graph (NetworkX)
-  python main.py graph-entity    # M5: spaCy NER entity graph
+  python main.py ingest          # parse all PDFs -> JSON (skips existing)
+  python main.py ingest --force  # reparse all PDFs
+  python main.py embed           # chunk + embed -> Qdrant (skips existing)
+  python main.py embed --force   # re-embed all books
+  python main.py graph-struct    # structural graph (NetworkX)
+  python main.py graph-entity    # stanza NER entity graph
   python main.py ask "query"     # RAG query
   python main.py serve           # start FastAPI server
   python main.py serve-ui        # start Streamlit UI
@@ -19,12 +21,12 @@ def main():
     if cmd == "ingest":
         from src.ingestion.parser import parse_all
         from config import BOOKS_DIR, PARSED_DIR
-        parse_all(BOOKS_DIR, PARSED_DIR)
+        parse_all(BOOKS_DIR, PARSED_DIR, force="--force" in sys.argv)
 
     elif cmd == "embed":
         from src.embedding.embedder import embed_all
         from config import PARSED_DIR, QDRANT_PATH
-        embed_all(PARSED_DIR, QDRANT_PATH)
+        embed_all(PARSED_DIR, QDRANT_PATH, force="--force" in sys.argv)
 
     elif cmd == "graph-struct":
         from src.graph.knowledge_graph import build_all_structural

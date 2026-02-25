@@ -167,22 +167,71 @@ Every answer includes: `[Book Title, Chapter X, Section Y]`
 | M4 | Structural knowledge graph (NetworkX) ✅ |
 | M5 | Entity graph: stanza NER merged into NetworkX ✅ |
 | M6 | FastAPI + Streamlit UI with Graph tab ✅ |
-| M7 | Extended features (clustering, quizzes, etc.) |
+| M7 | Incremental ingestion — skip already-parsed/embedded books ✅ |
+| M8 | Flashcard / quiz generation — CLI + API + UI tab |
+| M9 | Book recommendation — cosine similarity over book embeddings |
+| M10 | Topic clustering — UMAP + HDBSCAN over all chunk embeddings |
 
 ---
 
-## Extended Capabilities (Beyond Core)
+## Phase 7 — Incremental Ingestion
+
+**Goal:** Skip already-parsed/embedded books so re-running `ingest` or `embed` is safe and fast.
+
+### Approach
+- `ingest`: skip PDF if `data/parsed/<stem>.json` already exists
+- `embed`: skip book if all its chunks are already in Qdrant (check by book name metadata)
+- CLI flag `--force` to override and reprocess
+
+---
+
+## Phase 8 — Flashcard / Quiz Generation
+
+**Goal:** Generate Q&A pairs per section using the local LLM.
+
+### Approach
+- New CLI command: `python main.py flashcards <book>`
+- Prompt Ollama to produce N question/answer pairs per section
+- Output: `data/flashcards/<book>.json`
+- New API endpoint: `GET /flashcards?book=...`
+- New UI tab: Flashcards — pick book/chapter, browse Q&A cards
+
+---
+
+## Phase 9 — Book Recommendation
+
+**Goal:** Given a book, find the most similar books in the library.
+
+### Approach
+- Aggregate chunk embeddings per book (mean pooling)
+- Cosine similarity between book vectors
+- New API endpoint: `GET /recommend?book=...&top_k=5`
+- Surfaced in UI: sidebar or dedicated tab
+
+---
+
+## Phase 10 — Topic Clustering
+
+**Goal:** Auto-discover thematic clusters across all chunks.
+
+### Approach
+- Fetch all chunk embeddings from Qdrant
+- Reduce dimensions: UMAP
+- Cluster: HDBSCAN
+- Label clusters: LLM names each cluster from its top terms
+- Output: `data/clusters.json` + interactive scatter plot in UI
+- New deps: `umap-learn`, `hdbscan`
+
+---
+
+## Extended Capabilities (Deferred)
 
 | Capability | How |
 |---|---|
-| **Topic clustering** | Embed all chunks → UMAP + HDBSCAN → auto-discover topic clusters |
-| **Book recommendation** | Cosine similarity between book embeddings |
 | **Concept drift tracking** | Same concept across books from different eras → timeline view |
-| **Flashcard / quiz generation** | LLM generates Q&A pairs per section |
 | **Podcast/audio summary** | LLM summarizes chapters → TTS (e.g., Coqui, ElevenLabs) |
 | **Multi-modal** | Extract and index figures/diagrams via vision models |
 | **Annotation layer** | Store user notes linked to specific chunks in the graph |
-| **Incremental ingestion** | Watch folder for new PDFs, auto-process and merge |
 
 ---
 

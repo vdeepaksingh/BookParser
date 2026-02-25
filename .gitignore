@@ -11,6 +11,7 @@ lib/
 __pycache__/
 *.pyc
 *.egg-info/
+*.dist-info/
 
 # Env
 .env

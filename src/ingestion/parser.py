@@ -56,12 +56,17 @@ def parse_pdf(pdf_path: Path) -> dict:
     }
 
 
-def parse_all(books_dir: Path, output_dir: Path) -> list[Path]:
+def parse_all(books_dir: Path, output_dir: Path, force: bool = False) -> list[Path]:
     """Parse all PDFs in books_dir, write one JSON per book to output_dir.
+    Skips books whose JSON already exists unless force=True.
     Returns list of written JSON paths."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     def _process(pdf_path: Path):
+        out_path = output_dir / (pdf_path.stem + ".json")
+        if not force and out_path.exists():
+            print(f"[SKIP] {pdf_path.name} — already parsed")
+            return None
         try:
             result = parse_pdf(pdf_path)
             out_path = output_dir / (pdf_path.stem + ".json")

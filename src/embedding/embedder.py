@@ -12,8 +12,6 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from sentence_transformers import SentenceTransformer
 
-import sys
-sys.path.insert(0, str(Path(__file__).parents[2]))
 from config import EMBED_MODEL, QDRANT_PATH, QDRANT_COLLECTION, CHUNK_MAX_TOKENS, CHUNK_OVERLAP_PCT
 
 VECTOR_SIZE = 1024  # BAAI/bge-large-en-v1.5 output dim
@@ -94,8 +92,20 @@ def embed_and_store(chunks: list[dict], qdrant_path: Path = QDRANT_PATH) -> None
     print(f"  Stored {len(points)} chunks in Qdrant collection '{QDRANT_COLLECTION}'")
 
 
-def embed_all(parsed_dir: Path, qdrant_path: Path = QDRANT_PATH) -> None:
-    """Load all parsed JSONs, chunk, embed, and store. Entry point for M2."""
+def _book_already_embedded(client: QdrantClient, book_title: str) -> bool:
+    """Return True if any chunk for this book title exists in Qdrant."""
+    result = client.scroll(
+        collection_name=QDRANT_COLLECTION,
+        scroll_filter={"must": [{"key": "book", "match": {"value": book_title}}]},
+        limit=1,
+        with_payload=False,
+        with_vectors=False,
+    )
+    return len(result[0]) > 0
+
+
+def embed_all(parsed_dir: Path, qdrant_path: Path = QDRANT_PATH, force: bool = False) -> None:
+    """Load all parsed JSONs, chunk, embed, and store. Skips already-embedded books unless force=True."""
     json_files = sorted(parsed_dir.glob("*.json"))
     if not json_files:
         print("No parsed JSON files found. Run 'python main.py ingest' first.")
@@ -107,6 +117,10 @@ def embed_all(parsed_dir: Path, qdrant_path: Path = QDRANT_PATH) -> None:
 
     for json_path in json_files:
         book_json = json.loads(json_path.read_text(encoding="utf-8"))
+        if not force and _book_already_embedded(client, book_json["book"]):
+            print(f"[SKIP] {json_path.name} — already embedded")
+            continue
+
         chunks = chunk_book(book_json)
         if not chunks:
             print(f"[SKIP] {json_path.name} — no chunks produced")
