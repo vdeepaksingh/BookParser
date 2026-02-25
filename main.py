@@ -8,6 +8,8 @@ Usage:
   python main.py embed --force   # re-embed all books
   python main.py graph-struct    # structural graph (NetworkX)
   python main.py graph-entity    # stanza NER entity graph
+  python main.py cluster           # build topic clusters (UMAP + HDBSCAN)
+  python main.py cluster --force   # rebuild even if clusters.json exists
   python main.py flashcards            # generate flashcards for all books
   python main.py flashcards <stem>      # generate for one book (by filename stem)
   python main.py flashcards --force     # regenerate even if already exist
@@ -39,6 +41,10 @@ def main():
         from src.graph.knowledge_graph import build_entity_graph
         from config import PARSED_DIR
         build_entity_graph(PARSED_DIR)
+
+    elif cmd == "cluster":
+        from src.clustering.clusterer import build_clusters
+        build_clusters(force="--force" in sys.argv)
 
     elif cmd == "flashcards":
         from src.flashcards.generator import generate_flashcards

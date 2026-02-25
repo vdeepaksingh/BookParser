@@ -83,6 +83,16 @@ def get_section(book: str, chapter: str, section: str):
     raise HTTPException(status_code=404, detail="Section not found")
 
 
+@app.get("/clusters")
+def clusters_endpoint():
+    """Return precomputed topic clusters. Run 'python main.py cluster' first."""
+    from config import CLUSTERS_PATH
+    import json as _json
+    if not CLUSTERS_PATH.exists():
+        raise HTTPException(status_code=404, detail="No clusters found. Run 'python main.py cluster' first.")
+    return _json.loads(CLUSTERS_PATH.read_text(encoding="utf-8"))
+
+
 @app.get("/recommend")
 def recommend_endpoint(book: str, top_k: int = 5):
     """Return top_k books most similar to the given book title."""

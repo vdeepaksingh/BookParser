@@ -34,6 +34,11 @@ CHUNK_CONTEXT_CAP = 500     # max chars of chunk text sent to LLM
 FLASHCARDS_DIR         = ROOT / "data" / "flashcards"
 FLASHCARDS_PER_SECTION = 3   # Q&A pairs to generate per section
 
+# Clustering
+CLUSTERS_PATH          = ROOT / "data" / "clusters.json"
+UMAP_N_COMPONENTS      = 2
+HDBSCAN_MIN_CLUSTER_SIZE = 5
+
 # API
 API_URL           = "http://localhost:8000"
 API_PORT          = 8000

@@ -24,7 +24,7 @@ def _show_section(book, chapter, section):
 st.set_page_config(page_title="BookParser", layout="centered")
 st.title("📚 BookParser")
 
-tab_ask, tab_search, tab_graph, tab_flash, tab_rec = st.tabs(["Ask", "Search", "Graph", "Flashcards", "Recommend"])
+tab_ask, tab_search, tab_graph, tab_flash, tab_rec, tab_cluster = st.tabs(["Ask", "Search", "Graph", "Flashcards", "Recommend", "Clusters"])
 
 with tab_ask:
     st.subheader("Ask a question")
@@ -196,3 +196,42 @@ with tab_rec:
                         st.markdown(f"**{i}. {r['book']}** — {score_pct}% similarity")
                 except Exception as e:
                     st.error(str(e))
+
+with tab_cluster:
+    st.subheader("Topic Clusters")
+    if st.button("Load clusters"):
+        with st.spinner("Loading..."):
+            try:
+                resp = requests.get(f"{API_URL}/clusters", timeout=30)
+                resp.raise_for_status()
+                data = resp.json()
+                clusters = data.get("clusters", [])
+                noise = data.get("noise", [])
+
+                if not clusters:
+                    st.info("No clusters found. Run `python main.py cluster` first.")
+                else:
+                    st.caption(f"{len(clusters)} clusters, {sum(c['size'] for c in clusters)} points, {len(noise)} noise")
+
+                    # build scatter data
+                    import pandas as pd
+                    rows = []
+                    for c in clusters:
+                        for p in c["points"]:
+                            rows.append({"x": p["x"], "y": p["y"], "cluster": c["label"],
+                                         "book": p["book"], "section": p["section"]})
+                    for p in noise:
+                        rows.append({"x": p["x"], "y": p["y"], "cluster": "noise",
+                                     "book": p["book"], "section": p["section"]})
+
+                    df = pd.DataFrame(rows)
+                    st.scatter_chart(df, x="x", y="y", color="cluster", use_container_width=True)
+
+                    st.divider()
+                    for c in clusters:
+                        with st.expander(f"{c['label']} ({c['size']} chunks)"):
+                            for p in c["points"][:5]:
+                                st.markdown(f"**{p['book']}** › {p['chapter']} › {p['section']}")
+                                st.caption(p["text"][:300])
+            except Exception as e:
+                st.error(str(e))

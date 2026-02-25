@@ -4,6 +4,7 @@ data/parsed/
 data/qdrant/
 data/graph.gpickle
 data/flashcards/
+data/clusters.json
 
 # pyvis runtime assets
 lib/

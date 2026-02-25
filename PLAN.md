@@ -170,7 +170,7 @@ Every answer includes: `[Book Title, Chapter X, Section Y]`
 | M7 | Incremental ingestion — skip already-parsed/embedded books ✅ |
 | M8 | Flashcard / quiz generation — CLI + API + UI tab ✅ |
 | M9 | Book recommendation — cosine similarity over book embeddings ✅ |
-| M10 | Topic clustering — UMAP + HDBSCAN over all chunk embeddings |
+| M10 | Topic clustering — UMAP + HDBSCAN over all chunk embeddings ✅ |
 
 ---
 
