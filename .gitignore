@@ -3,6 +3,7 @@ data/books/
 data/parsed/
 data/qdrant/
 data/graph.gpickle
+data/flashcards/
 
 # pyvis runtime assets
 lib/

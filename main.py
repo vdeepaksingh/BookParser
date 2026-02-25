@@ -8,7 +8,9 @@ Usage:
   python main.py embed --force   # re-embed all books
   python main.py graph-struct    # structural graph (NetworkX)
   python main.py graph-entity    # stanza NER entity graph
-  python main.py ask "query"     # RAG query
+  python main.py flashcards            # generate flashcards for all books
+  python main.py flashcards <stem>      # generate for one book (by filename stem)
+  python main.py flashcards --force     # regenerate even if already exist
   python main.py serve           # start FastAPI server
   python main.py serve-ui        # start Streamlit UI
 """
@@ -37,6 +39,12 @@ def main():
         from src.graph.knowledge_graph import build_entity_graph
         from config import PARSED_DIR
         build_entity_graph(PARSED_DIR)
+
+    elif cmd == "flashcards":
+        from src.flashcards.generator import generate_flashcards
+        args = [a for a in sys.argv[2:] if a != "--force"]
+        book_stem = args[0] if args else None
+        generate_flashcards(book_stem=book_stem, force="--force" in sys.argv)
 
     elif cmd == "ask":
         from src.rag.engine import ask

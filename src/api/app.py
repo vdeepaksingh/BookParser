@@ -83,7 +83,32 @@ def get_section(book: str, chapter: str, section: str):
     raise HTTPException(status_code=404, detail="Section not found")
 
 
-@app.get("/graph/books")
+@app.get("/flashcards")
+def flashcards_endpoint(book: str):
+    """Return generated flashcards for a book (by title)."""
+    from src.flashcards.generator import list_flashcard_books, load_flashcards
+    from pathlib import Path
+    from config import FLASHCARDS_DIR
+    # match by title
+    for path in sorted(FLASHCARDS_DIR.glob("*.json")):
+        try:
+            import json as _json
+            data = _json.loads(path.read_text(encoding="utf-8"))
+            if data.get("book") == book:
+                return data
+        except Exception:
+            pass
+    raise HTTPException(status_code=404, detail="Flashcards not found for this book. Run flashcards command first.")
+
+
+@app.get("/flashcards/books")
+def flashcard_books_endpoint():
+    """List books that have generated flashcards."""
+    from src.flashcards.generator import list_flashcard_books
+    return {"books": list_flashcard_books()}
+
+
+
 def list_books():
     from src.graph.knowledge_graph import _load_graph
     g = _load_graph()

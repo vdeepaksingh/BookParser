@@ -30,6 +30,10 @@ RELEVANCE_THRESHOLD = -2.0  # CrossEncoder min score to attempt LLM answer
 RERANK_MIN_SCORE  = -1.0    # CrossEncoder min score to include chunk in context
 CHUNK_CONTEXT_CAP = 500     # max chars of chunk text sent to LLM
 
+# Flashcards
+FLASHCARDS_DIR         = ROOT / "data" / "flashcards"
+FLASHCARDS_PER_SECTION = 3   # Q&A pairs to generate per section
+
 # API
 API_URL           = "http://localhost:8000"
 API_PORT          = 8000

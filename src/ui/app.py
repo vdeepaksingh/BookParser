@@ -24,7 +24,7 @@ def _show_section(book, chapter, section):
 st.set_page_config(page_title="BookParser", layout="centered")
 st.title("📚 BookParser")
 
-tab_ask, tab_search, tab_graph = st.tabs(["Ask", "Search", "Graph"])
+tab_ask, tab_search, tab_graph, tab_flash = st.tabs(["Ask", "Search", "Graph", "Flashcards"])
 
 with tab_ask:
     st.subheader("Ask a question")
@@ -137,5 +137,34 @@ with tab_graph:
                             for s in data["sections"][:10]:
                                 with st.expander(f"{s['book']} › {s['chapter']} › {s['section']}"):
                                     _show_section(s["book"], s["chapter"], s["section"])
+                except Exception as e:
+                    st.error(str(e))
+
+with tab_flash:
+    st.subheader("Flashcards")
+    try:
+        books = requests.get(f"{API_URL}/flashcards/books", timeout=10).json().get("books", [])
+    except Exception as e:
+        st.error(f"API unavailable: {e}")
+        books = []
+
+    if not books:
+        st.warning("No flashcards found. Run `python main.py flashcards` first.")
+    else:
+        selected_book = st.selectbox("Select book", books, key="flash_book")
+        if st.button("Load flashcards"):
+            with st.spinner("Loading..."):
+                try:
+                    data = requests.get(f"{API_URL}/flashcards",
+                                        params={"book": selected_book}, timeout=30).json()
+                    total = sum(len(s["cards"]) for ch in data["chapters"] for s in ch["sections"])
+                    st.caption(f"{total} cards across {len(data['chapters'])} chapters")
+                    for ch in data["chapters"]:
+                        with st.expander(ch["chapter"]):
+                            for sec in ch["sections"]:
+                                st.markdown(f"**{sec['section']}**")
+                                for i, card in enumerate(sec["cards"], 1):
+                                    with st.expander(f"Q{i}: {card['question']}"):
+                                        st.markdown(card["answer"])
                 except Exception as e:
                     st.error(str(e))
