@@ -83,6 +83,16 @@ def get_section(book: str, chapter: str, section: str):
     raise HTTPException(status_code=404, detail="Section not found")
 
 
+@app.get("/recommend")
+def recommend_endpoint(book: str, top_k: int = 5):
+    """Return top_k books most similar to the given book title."""
+    from src.embedding.embedder import recommend_books
+    results = recommend_books(book, top_k=top_k)
+    if not results:
+        raise HTTPException(status_code=404, detail="Book not found or no other books to compare.")
+    return {"book": book, "recommendations": results}
+
+
 @app.get("/flashcards")
 def flashcards_endpoint(book: str):
     """Return generated flashcards for a book (by title)."""

@@ -8,8 +8,9 @@ import json
 import uuid
 from pathlib import Path
 
+import numpy as np
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 from sentence_transformers import SentenceTransformer
 
 from config import EMBED_MODEL, QDRANT_PATH, QDRANT_COLLECTION, CHUNK_MAX_TOKENS, CHUNK_OVERLAP_PCT
@@ -140,3 +141,62 @@ def embed_all(parsed_dir: Path, qdrant_path: Path = QDRANT_PATH, force: bool = F
 
         client.upsert(collection_name=QDRANT_COLLECTION, points=points)
         print(f"[OK] {json_path.name} — {len(points)} chunks embedded")
+
+
+def _get_book_vector(client: QdrantClient, book_title: str) -> np.ndarray | None:
+    """Mean-pool all chunk vectors for a book into a single representative vector."""
+    vectors = []
+    offset = None
+    while True:
+        results, offset = client.scroll(
+            collection_name=QDRANT_COLLECTION,
+            scroll_filter=Filter(must=[FieldCondition(key="book", match=MatchValue(value=book_title))]),
+            limit=256,
+            offset=offset,
+            with_vectors=True,
+            with_payload=False,
+        )
+        vectors.extend(r.vector for r in results)
+        if offset is None:
+            break
+    if not vectors:
+        return None
+    arr = np.array(vectors, dtype=np.float32)
+    mean = arr.mean(axis=0)
+    norm = np.linalg.norm(mean)
+    return mean / norm if norm > 0 else None
+
+
+def recommend_books(book_title: str, top_k: int = 5, qdrant_path: Path = QDRANT_PATH) -> list[dict]:
+    """Return top_k most similar books to book_title by cosine similarity of mean embeddings."""
+    client = _get_client(qdrant_path)
+
+    # collect all distinct book titles
+    all_books: set[str] = set()
+    offset = None
+    while True:
+        results, offset = client.scroll(
+            collection_name=QDRANT_COLLECTION,
+            limit=256,
+            offset=offset,
+            with_payload=["book"],
+            with_vectors=False,
+        )
+        all_books.update(r.payload["book"] for r in results if r.payload)
+        if offset is None:
+            break
+
+    query_vec = _get_book_vector(client, book_title)
+    if query_vec is None:
+        return []
+
+    scores = []
+    for title in all_books:
+        if title == book_title:
+            continue
+        vec = _get_book_vector(client, title)
+        if vec is not None:
+            scores.append((title, float(np.dot(query_vec, vec))))
+
+    scores.sort(key=lambda x: x[1], reverse=True)
+    return [{"book": t, "score": round(s, 4)} for t, s in scores[:top_k]]

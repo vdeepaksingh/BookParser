@@ -24,7 +24,7 @@ def _show_section(book, chapter, section):
 st.set_page_config(page_title="BookParser", layout="centered")
 st.title("📚 BookParser")
 
-tab_ask, tab_search, tab_graph, tab_flash = st.tabs(["Ask", "Search", "Graph", "Flashcards"])
+tab_ask, tab_search, tab_graph, tab_flash, tab_rec = st.tabs(["Ask", "Search", "Graph", "Flashcards", "Recommend"])
 
 with tab_ask:
     st.subheader("Ask a question")
@@ -166,5 +166,33 @@ with tab_flash:
                                 for i, card in enumerate(sec["cards"], 1):
                                     with st.expander(f"Q{i}: {card['question']}"):
                                         st.markdown(card["answer"])
+                except Exception as e:
+                    st.error(str(e))
+
+with tab_rec:
+    st.subheader("Book Recommendations")
+    try:
+        books = requests.get(f"{API_URL}/graph/books", timeout=10).json().get("books", [])
+    except Exception as e:
+        st.error(f"API unavailable: {e}")
+        books = []
+
+    if not books:
+        st.warning("No books found. Run `python main.py graph-struct` first.")
+    else:
+        selected_book = st.selectbox("Select a book", books, key="rec_book")
+        top_k = st.slider("Top K", 1, 10, 5, key="rec_top_k")
+        if st.button("Find similar books"):
+            with st.spinner("Computing similarities..."):
+                try:
+                    resp = requests.get(f"{API_URL}/recommend",
+                                        params={"book": selected_book, "top_k": top_k}, timeout=60)
+                    resp.raise_for_status()
+                    recs = resp.json().get("recommendations", [])
+                    if not recs:
+                        st.info("No similar books found.")
+                    for i, r in enumerate(recs, 1):
+                        score_pct = int(r["score"] * 100)
+                        st.markdown(f"**{i}. {r['book']}** — {score_pct}% similarity")
                 except Exception as e:
                     st.error(str(e))
