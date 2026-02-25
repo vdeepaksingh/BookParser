@@ -8,7 +8,7 @@ BOOKS_DIR         = ROOT / "data" / "books"
 PARSED_DIR        = ROOT / "data" / "parsed"
 
 # Embedding
-EMBED_MODEL       = "BAAI/bge-large-en-v1.5"
+EMBED_MODEL       = "sentence-transformers/all-MiniLM-L6-v2"
 QDRANT_PATH       = ROOT / "data" / "qdrant"
 QDRANT_COLLECTION = "bookparser"
 

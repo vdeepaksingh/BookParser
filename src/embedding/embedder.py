@@ -15,7 +15,7 @@ from sentence_transformers import SentenceTransformer
 
 from config import EMBED_MODEL, QDRANT_PATH, QDRANT_COLLECTION, CHUNK_MAX_TOKENS, CHUNK_OVERLAP_PCT
 
-VECTOR_SIZE = 1024  # BAAI/bge-large-en-v1.5 output dim
+VECTOR_SIZE = 384  # sentence-transformers/all-MiniLM-L6-v2 output dim
 
 
 def chunk_book(book_json: dict, max_tokens: int = CHUNK_MAX_TOKENS, overlap_pct: float = CHUNK_OVERLAP_PCT) -> list[dict]:
@@ -97,7 +97,7 @@ def _book_already_embedded(client: QdrantClient, book_title: str) -> bool:
     """Return True if any chunk for this book title exists in Qdrant."""
     result = client.scroll(
         collection_name=QDRANT_COLLECTION,
-        scroll_filter={"must": [{"key": "book", "match": {"value": book_title}}]},
+        scroll_filter=Filter(must=[FieldCondition(key="book", match=MatchValue(value=book_title))]),
         limit=1,
         with_payload=False,
         with_vectors=False,

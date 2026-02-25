@@ -16,6 +16,9 @@ Usage:
   python main.py serve           # start FastAPI server
   python main.py serve-ui        # start Streamlit UI
 """
+import os
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 import sys
 
 

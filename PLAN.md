@@ -240,7 +240,7 @@ Every answer includes: `[Book Title, Chapter X, Section Y]`
 | Decision | Choice | Rationale |
 |---|---|---|
 | PDF type | Text-based | PyMuPDF only; pdfplumber planned as fallback but never needed — all books are text-based PDFs |
-| Language | English only | `BAAI/bge-large-en-v1.5` is optimal |
+| Language | English only | `sentence-transformers/all-MiniLM-L6-v2` — switched from `BAAI/bge-large-en-v1.5` (1.3GB, caused Windows pagefile exhaustion) |
 | Graph DB | NetworkX (not Neo4j) | Zero infra, sufficient for current scale |
 | NER | stanza (not spaCy) | spaCy incompatible with Python 3.14 (pydantic v1) |
 | Relation extraction | NER only (not Rebel) | Rebel/transformers removed; stanza sufficient |
